@@ -1,134 +1,89 @@
 # Instamart Customer Intelligence Capstone
 
-This project builds a full synthetic data workflow for an Instamart-style retail business. It combines data cleaning, SQL analysis, customer segmentation, churn prediction, support ticket routing, and a policy-based refund assistant using deterministic mock LLM behavior.
+## Overview
 
-## Project overview
+This repository contains an end-to-end, locally reproducible analytics project built with synthetic Instamart-style retail data. It covers data quality and SQL analysis (Part A), customer segmentation and lapse prediction (Part B), support-ticket triage (Part C), and policy retrieval with a simulated refund workflow (Part D).
 
-The codebase is organized into four parts:
+The supplied root-level `generate_data.py` data generator and `mock_llm.py` deterministic language-model stand-in are retained as provided. The project runs offline and does not call a live LLM or payment service.
 
-- Part A: Data audit, cleaning, validation, SQL queries, and exploratory data analysis
-- Part B: RFM segmentation, churn/lapse modeling, and retention analysis
-- Part C: Support ticket classification and prioritization for customer issues
-- Part D: Policy retrieval and a tool-driven refund workflow agent
+Key files:
 
-The project uses synthetic but realistic customer, product, order, and ticket data generated locally, making it a good end-to-end learning project for analytics and applied ML workflows.
+- `src/part_a.py` through `src/part_d.py`: implementation of Parts A-D.
+- `sql/queries.sql`: seven SQL analysis queries.
+- `notebooks/`: notebooks for exploring and running each part.
+- `outputs/`: committed segmentation, model, retention, and triage artifacts.
+- `data/`: synthetic input data, cleaned data, policy text, and SQLite database.
+- `run_project.py`: runs the full pipeline from the repository root.
+- `requirements.txt`: Python package dependencies.
 
-## Repository structure
+## Reproduce
 
-```text
-Instamat_project/
-├── data/
-│   ├── raw/                  # Generated source CSV datasets
-│   ├── clean/                # Cleaned data outputs
-│   ├── policies/             # Policy documents for retrieval
-│   └── instamart.db          # SQLite database used for SQL analysis
-├── outputs/                  # Generated results, reports, and model outputs
-├── notebooks/                # Optional notebook work (if present in your environment)
-├── src/
-│   ├── part_a.py             # Data extraction, cleaning, validation, SQL, EDA
-│   ├── part_b.py             # RFM, clustering, retention modeling
-│   ├── part_c.py             # Ticket triage pipeline
-│   └── part_d.py             # Policy RAG and refund agent logic
-├── generate_data.py           # Synthetic dataset generator
-├── mock_llm.py               # Offline mock language model for classification and routing
-├── run_project.py            # End-to-end project runner
-├── validate.py               # Validation checks for cleaned outputs
-├── requirements.txt          # Python dependencies
-├── README.md                 # Project overview and setup guide
-└── sql/
-    └── queries.sql           # SQL analysis queries used in Part A
-```
-
-## Data and workflow
-
-### Synthetic data generation
-
-`generate_data.py` creates realistic retail data, including:
-
-- Customers with city, age, gender, and signup information
-- Product catalog with pricing and categories
-- Orders with statuses, discount data, amounts, and delivery timing
-- Support tickets representing billing, delivery, technical, and fraud cases
-- Policy text documents used by the retrieval workflow
-
-### Analytics pipeline
-
-`run_project.py` executes the full project and prints results for:
-
-1. Data quality audit and cleaning checks
-2. SQL-based revenue and customer analysis
-3. Customer segmentation and retention modeling
-4. Support ticket triage routing
-5. Policy retrieval and refund workflow evaluation
-
-## Setup
-
-### 1. Create a virtual environment
+Use Python with the dependencies in `requirements.txt`. From the repository root:
 
 ```bash
 python -m venv .venv
 ```
 
-On Windows:
+Activate the environment:
 
 ```powershell
-.venv\Scripts\activate
+# Windows PowerShell
+.\.venv\Scripts\Activate.ps1
 ```
 
-On macOS/Linux:
-
 ```bash
+# macOS/Linux
 source .venv/bin/activate
 ```
 
-### 2. Install dependencies
+Install dependencies and run the complete pipeline:
 
 ```bash
-pip install -r requirements.txt
-```
-
-### 3. Generate synthetic data
-
-```bash
-python generate_data.py
-```
-
-This will create the raw data under `data/raw` and populate the policy files under `data/policies`.
-
-## Run the project
-
-### Full pipeline
-
-```bash
+python -m pip install -r requirements.txt
 python run_project.py
 ```
 
-This runs the complete analysis stack from data cleaning through segmentation, triage, and policy-driven interactions.
+The runner regenerates the synthetic inputs, cleans and validates the data, runs the SQL and analytics workflows, and writes the generated artifacts. Part A validation includes checks for customer and order totals, unique order IDs, status counts, completed-order amounts, and delivery-time completeness.
 
-### Validation
+The committed outputs are:
 
-```bash
-python validate.py
-```
+- `outputs/customer_segments.csv`
+- `outputs/lapse_model.joblib`
+- `outputs/retention_list.csv`
+- `outputs/triage_results.csv`
 
-This checks that the cleaned data satisfies expected project assertions and prints a pass/fail confirmation.
+## Part A
 
-## Key capabilities
+Part A audits the synthetic source tables, normalizes customer fields, cleans order records, stores clean CSVs and SQLite tables, runs the seven queries in `sql/queries.sql`, and cross-checks sales using pandas.
 
-- Data auditing and anomaly detection for messy real-world datasets
-- SQL analysis for customer and revenue insights
-- RFM feature engineering and customer segmentation
-- Lapse prediction using scikit-learn pipelines
-- Ticket routing with deterministic LLM-like behavior
-- Retrieval-augmented policy answers for customer support scenarios
-- Simulated refund decision workflow using local utility tools
+Validated dataset totals are **1,200 customers**, **40 products**, and **12,309 unique orders**: **11,110 completed** and **1,199 cancelled**. The completed orders total **INR 2,998,668.80**. Customer data covers **6 cities**. The cleaning and validation assertions run as part of `python run_project.py`.
 
-## Notes
+## Part B
 
-- This is a synthetic, educational project and not connected to a live production system.
-- The mock LLM is intentionally deterministic and offline so the project can run without API keys.
-- Outputs and generated data are stored locally under `data/` and `outputs/`.
+Part B builds customer recency, frequency, and monetary (RFM) features, compares K-means segmentations, creates a lapse cohort, tunes logistic-regression and random-forest models, and saves the selected model and a retention shortlist.
 
-## License
+RFM features cover **1,175 customers**. The selected segmentation uses **4 clusters**. The leakage-free lapse cohort has **1,156 customers**, of whom **443 (38.32%)** are labeled lapsed. The stratified model split contains **924 training** and **232 test** examples.
 
-This project is intended for educational and demonstration use.
+On the held-out test set, the random forest scores **0.737 accuracy**, **0.659 precision**, **0.652 recall**, and **0.655 F1** for the lapse class. Its best cross-validation F1 is **0.681**. In the class-balance experiment, oversampling changes logistic-regression test F1 from **0.648** to **0.697** and recall from **0.652** to **0.854**, while precision changes from **0.644** to **0.589**. The saved retention shortlist has **10 customers**; **1** is labeled lapsed in the observed period.
+
+## Part C
+
+Part C redacts detected email addresses, phone numbers, and order IDs before sending ticket text to the deterministic local mock, then validates the classification response and routes tickets by category and customer segment. It writes the resulting records to `outputs/triage_results.csv`.
+
+The output contains **164 tickets** and uses **12,520 tokens**. It records **55 email**, **91 phone**, and **132 order-ID** redactions. There are **135 JSON classifications**, **12 keyword-fallback classifications**, **9 invalid outputs**, **4 empty tickets**, and **4 long tickets**. Routing results are **102** support-queue, **34** security-team, **17** human-review, and **11** premium-desk tickets.
+
+## Part D
+
+Part D indexes local policy text into overlapping TF-IDF chunks and evaluates answers against a policy question set. Its tool workflow can look up an order, retrieve policy, calculate a refund, and issue or escalate a simulated action. Any ledger is local JSONL; no money moves.
+
+The index contains **15 chunks** from **5 policy files**. In the **14-question** saved evaluation, the expected document and expected fact were each found for **12** in-scope questions; the **2** out-of-scope questions received fallback responses. The example policy allows a refund for an eligible completed order delivered in more than **45 minutes**; this is a demonstration of the local policy and not a live payment operation.
+
+## Limitations and Next Steps
+
+- The dataset is synthetic; model and workflow results do not establish production performance.
+- The mock LLM is deterministic and offline, so its outputs do not represent a live language model.
+- The retention shortlist is illustrative: its premium designation is a post-hoc, whole-window label and should not be treated as a leakage-free evaluation.
+- Ticket redaction uses regular expressions and is not a guarantee that all personal information is removed.
+- Refund actions are simulated and use a local ledger; there is no payment integration, production authorization, or operational audit service.
+
+Next steps include evaluating on representative, consented data; adding temporal and drift checks; testing redaction and routing with broader edge cases; setting model acceptance criteria with human review; and hardening the refund workflow before any production integration.
