@@ -42,7 +42,6 @@ def evaluate(rag):
           "fact_found":fact in ans["answer"] if fact else False,"fallback":ans["answer"].startswith("I could not find")})
     return pd.DataFrame(out)
 DB=ROOT/"data/instamart.db"; OUT=ROOT/"outputs"; STATE=ROOT/"state"
-#rag=PolicyRAG()
 def get_order(order_id):
     with sqlite3.connect(DB) as con:
         row=con.execute("select order_id,status,order_amount,delivery_minutes from orders where order_id=?",(order_id,)).fetchone()

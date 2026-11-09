@@ -12,7 +12,6 @@ DB = ROOT/'data/instamart.db'
 for folder in (RAW,CLEAN,OUT): folder.mkdir(parents=True,exist_ok=True)
 
 def load_raw():
-    """Load source-of-truth exports without changing the source files."""
     customers=pd.read_csv(RAW/'customers.csv')
     products=pd.read_csv(RAW/'products.csv')
     orders=pd.read_csv(RAW/'orders.csv')
@@ -20,7 +19,6 @@ def load_raw():
     return customers,products,orders,tickets
 
 def audit(customers,products,orders,tickets):
-    """Shapes, dtypes, per-column missingness and required raw anomaly counts."""
     for name,df in [('customers',customers),('products',products),('orders',orders),('tickets',tickets)]:
         print('\n',name,'shape:',df.shape)
         print('Types:\n',df.dtypes.to_string())
@@ -49,7 +47,6 @@ def audit(customers,products,orders,tickets):
     return result
 
 def clean_customers(df):
-    """Normalize city and gender, impute invalid ages by within-city median."""
     c=df.copy()
     c['city']=c.city.astype('string').str.strip().str.title()
     g=c.gender.fillna('').astype(str).str.strip().str.lower()
@@ -63,7 +60,6 @@ def clean_customers(df):
     return c
 
 def clean_orders(df,products):
-    """Apply the specified rules in order, retaining the latest status per ID."""
     o=df.copy()
     o['order_ts']=pd.to_datetime(o.order_ts,errors='raise')
     before=len(o); o=o.drop_duplicates()
@@ -97,7 +93,6 @@ def clean_orders(df,products):
     return o
 
 def store(customers,products,orders):
-    """Write three clean CSVs and SQLite tables; dates stored as ISO-like text."""
     tables={'customers':customers.copy(),'products':products.copy(),'orders':orders.copy()}
     tables['customers']['signup_date']=pd.to_datetime(tables['customers'].signup_date).dt.strftime('%Y-%m-%d')
     tables['orders']['order_ts']=pd.to_datetime(tables['orders'].order_ts).dt.strftime('%Y-%m-%d %H:%M:%S')
@@ -109,7 +104,6 @@ def store(customers,products,orders):
     return tables
 
 def validate(customers,products,orders):
-    """Reference assertions; only print the success message when all pass."""
     assert len(customers)==1200
     assert customers.city.nunique()==6
     assert customers.city.value_counts().to_dict()==dict(Pune=227,Delhi=210,Bengaluru=197,Chennai=191,Hyderabad=191,Mumbai=184)
@@ -124,7 +118,6 @@ def validate(customers,products,orders):
     print('ALL CHECKPOINTS PASSED')
 
 def run_sql():
-    """Run all seven named SQL queries and display their complete results."""
     sql=(ROOT/'sql/queries.sql').read_text()
     chunks=re.split(r'(?m)^-- (Q[1-7])\b[^\n]*\n',sql)
     results={}
@@ -137,7 +130,6 @@ def run_sql():
     return results
 
 def pandas_eda(customers,products,orders,sql_results):
-    """Cross-check Q2 and calculate city aggregations, distribution and correlations."""
     completed=orders.loc[orders.status.eq('completed')].copy()
     joined=completed.merge(customers[['customer_id','city']],on='customer_id').merge(products[['product_id','category']],on='product_id')
     pivot=pd.pivot_table(joined,index='city',columns='category',values='order_amount',aggfunc='sum',margins=True,fill_value=0)
